@@ -1,0 +1,257 @@
+---
+title: "Exploring the BRFSS data"
+output: 
+  html_document: 
+    fig_height: 4
+    highlight: pygments
+    theme: spacelab
+---
+
+## Setup
+
+### Load packages
+
+```{r load-packages, message = FALSE}
+library(ggplot2)
+library(dplyr)
+library(tidyverse)
+install.packages("ggthemes"
+install.packages("scales")
+library(ggthemes)
+library(scales)
+```
+
+### Load data
+
+Make sure your data and R Markdown files are in the same directory. When loaded
+your data file will be called `brfss2013`. Delete this note when before you submit 
+your work. 
+
+```{r load-data}
+load("brfss2013.RData")
+```
+
+
+
+* * *
+
+## Part 1: Data
+The following data were collected from a random sample of voluntary participants.
+The data contain over 491,000 observations of individuals within the United 
+States or its associated territories. The magnitude of the observations and the randomized approach to the collection of this data mean that it is generalizable
+to the population at large. However, these data are not perfect, and are subject
+to a number of biases that limit the reliability of the analyses.
+
+In the first place, there is evidence of a selection bias since the sample part
+icipants are only those with lanline telephones. 
+
+Secondly, the data are rife with response bias. Subjects in this sample are only those who chose to answer and participate in the survey.
+
+
+* * *
+
+## Part 2: Research questions
+
+**Research question 1:**
+what is the relationship between income and marital status? Are low or high incomes associated with higher rates of divorce?
+**Research question 2:**
+what is the relationship between marital status and the number of children? Of those who are married, how many children do they have? Of those who are divorced? Might divorce be associated with many/fewer children?
+**Research question 3:**
+what is the relationship between number of children and physical health? What is the relationship between physical health and the number of children one has? Specifically, are greater numbers of children associated with higher rates of cardiovascular disease, lung disease, cancer, etc.?
+
+* * *
+
+## Part 3: Exploratory data analysis
+
+NOTE: Insert code chunks as needed by clicking on the "Insert a new code chunk" 
+button (green button with orange arrow) above. Make sure that your code is visible
+in the project you submit. Delete this note when before you submit your work.
+
+**Research question 1:**
+what is the relationship between income and marital status?
+
+variables used in analysis:
+1. *income2*: Income level
+2. *marital*: Marital status: married, divorced, separated, widowed, never married
+
+class of variables:
+```{r}
+
+class(brfss2013$income2)
+class(brfss2013$marital)
+
+```
+levels of variables:
+
+```{r}
+levels(brfss2013$income2)
+levels(brfss2013$marital)
+```
+filtering out the NAs...
+```{r}
+my_data <- brfss2013 %>% filter(!is.na(brfss2013$income2), !is.na(brfss2013$marital))
+```
+
+Plotting the income variable to see the category proportions
+
+```{r}
+incplot <- ggplot(data = my_data, aes(x = fct_infreq(income2), fill = income2)) + geom_bar() + labs(x = "Income Bracket", y = "Frequency", title = "Income Distribution") + geom_text(aes(label = after_stat(count)), stat = 'count',  vjust = 2) + theme(legend.position = "none")
+
+incplot
+```
+
+Plotting the marital variable to see the category proportions
+
+```{r}
+marplot <- ggplot(data = my_data, aes(x = fct_infreq(marital), fill = marital)) + geom_bar() + 
+  labs(x = "Marital Status", y = "Frequency", title = "Marriage Distribution") +
+  geom_text(aes(label = after_stat(count)), stat = 'count', vjust = 2) +
+  theme(legend.position = "none")
+
+marplot
+```
+
+Now let's run a statistical test to see whether marital status is correlated with income level.
+
+```{r}
+install.packages("ggstatsplot")
+library(ggstatsplot)
+my_data %>% ggbarstats(x = marital, y = income2, label = "percentage")
+```
+
+Based on the plot above, we can see the marital status proportions based on income level. According to the graphic, the rate at which people are "married" increases positively with income level, while the rate at which people are either "never married" or "divorced" increases negatively with income level. In other words, lower income is associated with higher rates of divorce and never being married.
+
+Looking at the p-value and the Vcramer statistics, the p-value shows that the results are highly significant, and very unlikely to be due to chance; the Vcramer statistic shows that the association between marital status and income level is "moderately strong." This indicates that perhaps income level is not quite as significant in predicting marital status as many people may have been led to believe. Hypothesis testing in the form of a linear model would shed more light on this relationship. 
+
+**Research question 2:**
+what is the relationship between marital status and the number of children? Of those who are married, how many children do they have? Of those who are divorced? Might divorce be associated with many/fewer children?
+
+variables used in analysis:
+1. *marital*: Marital status: married, divorced, separated, widowed, never married
+2. *children*: number of children in household
+
+class of variables:
+```{r}
+class(my_data$children)
+```
+
+Taking a glimpse of the "children" variable.
+```{r}
+table(my_data$children)
+```
+
+filtering out the NAs...
+```{r}
+my_data <- my_data %>% filter(!is.na(my_data$children))
+```
+
+Plotting the children variable to see the category proportions
+
+```{r}
+chilplot <- ggplot(data = my_data, aes(x = children, fill = factor(children))) + 
+  geom_bar() + labs(x = "Number of Children", y = "Frequency", title = 
+  "Household Children Distribution") + geom_text(aes(label = after_stat(count)),
+   stat = 'count',  vjust = 1) + theme(legend.position = "none")
+
+chilplot
+```
+
+Based on the plot above, we can see that the overwhelming majority of households have no children.
+
+Let's look at the same barchart as a percentage
+
+```{r}
+chilplotper <- ggplot(data = my_data, aes(x = children, fill = factor(children),
+  y = after_stat(count/sum(count)))) +
+  geom_bar() +
+  geom_text(aes(label = paste0(round(after_stat(count/sum(count))* 100, 1), '%')),
+  stat = 'count' , vjust = -1) +
+  theme(legend.position = "none")
+
+chilplotper
+```
+
+
+**Research question 3:**
+what is the relationship between number of children and physical health? What is the relationship between physical health and the number of children one has? Specifically, are greater numbers of children associated with higher rates of cardiovascular disease, lung disease, cancer, etc.?
+
+First, let's look at the "bpmeds" variable: currently taking blood pressure medication.
+```{r}
+class(my_data$bpmeds)
+```
+
+Let's see the levels of "bpmeds"
+
+```{r}
+levels(my_data$bpmeds)
+```
+
+The "bpmeds" variable is a dummy variable that takes either "yes" or "no".
+
+Let's remove any NAs from the "bpmeds" variable.
+
+```{r}
+my_data <- my_data %>% filter(!is.na(my_data$bpmeds))
+```
+
+What's the rate at which the people surveyed take blood pressure medication?
+
+```{r}
+bpplot <- ggplot(data = my_data, aes(x = bpmeds, fill = bpmeds,
+  y = after_stat(count/sum(count)))) +
+  geom_bar() +
+  geom_text(aes(label = paste0(round(after_stat(count/sum(count))* 100, 1), '%')), stat = 'count' , vjust = -1) + theme(legend.position = "none")
+
+bpplot
+```
+
+From the plot above, we can see that the vast majority of those surveyed take blood pressure medication.
+
+Let's see how many of these chaps have children...
+
+```{r}
+bpchild <- ggplot(data = my_data, aes(x = children, fill = bpmeds)) +
+  geom_bar(position = position_stack()) +
+  geom_text(aes(label = after_stat(count)),
+            stat = 'count',
+            position = position_stack(vjust = 0))+
+  labs(x = "Number of Children", y = "Frequency", title = 
+  "BP Meds & Number of Children")
+
+bpchild
+  
+```
+
+The plot is difficult to read so let's see if we can transform it into a logarithmic scale.
+
+```{r}
+bpchild <- ggplot(data = my_data, aes(x = children, fill = bpmeds)) +
+  geom_bar(position = position_stack()) +
+  geom_text(aes(label = after_stat(count)),
+            stat = 'count',
+            position = position_stack(vjust = .8))+
+  labs(x = "Number of Children", y = "Frequency", title = 
+         "BP Meds & Number of Children") +
+  scale_y_continuous(trans = "log10")
+
+bpchild
+```
+
+This representation is much more intelligible... except... the y-axis is now distorted by the transformation of the vertical axis into a logarithmic base 10 scale. 
+
+For our last analysis, let's see whether the use of blood pressure medication is correlated with children.
+
+```{r}
+my_data %>% ggbarstats(x = children, y = bpmeds, label = "percentage")
+```
+
+Unfortunately, I could not find a way to specify more colors in the "palette" argument of ggbarstats. However, the statistics still shed some light. The p-value is highly significant ( <.001) and the correlation between blood pressure medication and number of children is moderately correlated. 
+
+
+
+
+
+
+
+
+
